@@ -104,6 +104,17 @@
     </div>
     <div class="section-body">
 
+      <div class="subsection-label">Нормативный документ</div>
+      <div class="radio-group">
+        <label class="radio-btn active" id="btn-sp256" onclick="setMethodology('sp256')">
+          <input type="radio" name="methodology" value="sp256" checked> СП 256.1325800.2016
+        </label>
+        <label class="radio-btn" id="btn-msk" onclick="setMethodology('msk')">
+          <input type="radio" name="methodology" value="msk"> Методика Правительства Москвы (2020)
+        </label>
+      </div>
+      <div class="divider"></div>
+
       <div class="subsection-label">Тип квартир</div>
       <div class="radio-group">
         <label class="radio-btn active" id="btn-std" onclick="setFlatType('std')">
@@ -140,6 +151,7 @@
 
       <div class="divider"></div>
 
+      <div id="block-ac">
       <div class="subsection-label">Общие параметры дома</div>
       <div class="form-grid">
         <div class="form-group">
@@ -163,6 +175,7 @@
             <option value="IVA, IVБ, IVВ, IVГ">IVA, IVБ, IVВ, IVГ</option>
           </select>
         </div>
+      </div>
       </div>
 
       <div class="divider"></div>
@@ -210,7 +223,7 @@
       <div class="divider"></div>
 
       <div class="subsection-label">cos(φ)</div>
-      <div class="radio-group">
+      <div class="radio-group" id="cosPhiGroup">
         <label class="radio-btn active" id="btn-cos1" onclick="setCosPhi('0.93')">
           <input type="radio" name="cosPhi" value="0.93" checked> 0,93
         </label>
@@ -270,7 +283,13 @@ const densityPower={
   "Санкт-Петербург":{1:10,2:10,3:10,4:10,5:10,6:4.20,9:3.15,12:2.65,15:2.32,18:2.15,24:1.83,40:1.58,60:1.38,100:1.22,200:1.1,400:1.02,600:0.99,1000:0.96,1500:0.95,2000:0.94},
   "Другие регионы":{1:10,2:10,3:10,4:10,5:10,6:5.1,9:3.8,12:3.2,15:2.8,18:2.6,24:2.2,40:1.95,60:1.7,100:1.5,200:1.36,400:1.27,600:1.23,1000:1.19}
 };
+
+// Московская методика 2020 — таблица 6.1
+const densityPowerMsk={1:10,3:5.96,6:4.08,9:3.28,12:2.80,15:2.48,18:2.25,24:1.92,40:1.46,60:1.17,100:0.98,200:0.92,400:0.80,600:0.68,1000:0.44};
+
 const simultaneity={1:1,2:1,3:1,4:1,5:1,6:0.51,9:0.38,12:0.32,15:0.29,18:0.26,24:0.24,40:0.20,60:0.18,100:0.16,200:0.14,400:0.13,600:0.11};
+// Коэффициент одновременности для повышенной комфортности по московской методике (табл.6.3)
+const simultaneityMsk={1:1,3:0.596,6:0.408,9:0.328,12:0.280,15:0.248,18:0.225,24:0.192,40:0.146,60:0.117,100:0.098,200:0.092,400:0.080,600:0.068};
 const acShare={
   "Крупнейшие и крупные":{"IA, IB, IД":0.35,"IIБ, IIВ, IIГ":0.60,"IIIA, IIIБ, IIIВ":0.80,"IVA, IVБ, IVВ, IVГ":1.0},
   "Большие, средние, малые":{"IA, IB, IД":0.25,"IIБ, IIВ, IIГ":0.45,"IIIA, IIIБ, IIIВ":0.60,"IVA, IVБ, IVВ, IVГ":0.75}
@@ -363,8 +382,22 @@ function interp(x,xA,yA){
   if(x<=xA[0])return yA[0];if(x>=xA[xA.length-1])return yA[yA.length-1];
   for(let i=0;i<xA.length-1;i++)if(x>=xA[i]&&x<=xA[i+1]){const t=(x-xA[i])/(xA[i+1]-xA[i]);return yA[i]+t*(yA[i+1]-yA[i]);}
 }
-function getSpecificLoad(region,n){const d=densityPower[region];const k=Object.keys(d).map(Number);return interp(n,k,k.map(x=>d[x]));}
-function getSimultaneity(n){const k=Object.keys(simultaneity).map(Number);return interp(n,k,k.map(x=>simultaneity[x]));}
+function getMethodology(){ return document.querySelector('input[name="methodology"]:checked')?.value||'sp256'; }
+
+function getSpecificLoad(region,n){
+  if(getMethodology()==='msk'){
+    if(n<100) return round3(10.838*Math.pow(n,-0.544));
+    return round3(-0.0006*n+1.037);
+  }
+  const d=densityPower[region];const k=Object.keys(d).map(Number);return interp(n,k,k.map(x=>d[x]));
+}
+function getSimultaneity(n){
+  if(getMethodology()==='msk'){
+    if(n<100) return round3(1.0838*Math.pow(n,-0.544));
+    return round3(-0.00006*n+0.1037);
+  }
+  const k=Object.keys(simultaneity).map(Number);return interp(n,k,k.map(x=>simultaneity[x]));
+}
 function getKc(n){const k=Object.keys(kcTable).map(Number);return interp(n,k,k.map(x=>kcTable[x]));}
 function getKz(a){return Math.min(1.0,Math.max(0.7,interp(a,[16,25],[0.7,1.0])));}
 function calcCurrent(p,c){return round2(p/(Math.sqrt(3)*0.38*c));}
@@ -395,14 +428,16 @@ function calcPower(rd, flatType, region, avgArea, cityGroup, climate, pStudio, p
     pInstalled=round2(nStudio*pStudio+n1k*p1k+n2k*p2k+n3k*p3k+n4k*p4k);
     pFlats=round2(ks*pInstalled);
   }
-  // Число кондиционеров — авто или вручную
+  // Число кондиционеров — только для стандартных квартир по СП256
   let nAc=0;
-  if(acMode==='manual'){
-    nAc=acManual||0;
-  } else {
-    const nRooms=nStudio+n1k+n2k*2+n3k*3+n4k*4;
-    const share=acShare[cityGroup][climate];
-    nAc=Math.round(nRooms*share);
+  if(flatType==='std' && getMethodology()==='sp256'){
+    if(acMode==='manual'){
+      nAc=acManual||0;
+    } else {
+      const nRooms=nStudio+n1k+n2k*2+n3k*3+n4k*4;
+      const share=acShare[cityGroup][climate];
+      nAc=Math.round(nRooms*share);
+    }
   }
   let pAc=0,pAcInst=0,kcAc=null;
   if(nAc>0){const kz=getKz(avgArea);const kc=getKc(nAc);kcAc=round3(kc);pAc=round2(kc*kz*0.9*nAc);pAcInst=round2(nAc*0.9);}
@@ -410,11 +445,26 @@ function calcPower(rd, flatType, region, avgArea, cityGroup, climate, pStudio, p
 }
 
 function toggleSection(id){document.getElementById(id).classList.toggle('open');}
-function setFlatType(type){
+function setMethodology(method){
+  document.getElementById('btn-sp256').classList.toggle('active',method==='sp256');
+  document.getElementById('btn-msk').classList.toggle('active',method==='msk');
+  // Скрываем блок кондиционеров при московской методике
+  document.getElementById('block-ac').classList.toggle('hidden',method==='msk');
+  // cos(φ) фиксируем 0.98 для московской методики
+  if(method==='msk'){
+    setCosPhi('0.98');
+    document.getElementById('cosPhiGroup').style.pointerEvents='none';
+    document.getElementById('cosPhiGroup').style.opacity='0.4';
+  } else {
+    document.getElementById('cosPhiGroup').style.pointerEvents='';
+    document.getElementById('cosPhiGroup').style.opacity='';
+  }
+}
   document.getElementById('block-std').classList.toggle('hidden',type!=='std');
   document.getElementById('block-lux').classList.toggle('hidden',type!=='lux');
   document.getElementById('btn-std').classList.toggle('active',type==='std');
   document.getElementById('btn-lux').classList.toggle('active',type==='lux');
+  renderRisers(1); renderRisers(2);
 }
 function setCosPhi(val){
   document.getElementById('btn-cos1').classList.toggle('active',val==='0.93');
@@ -436,6 +486,7 @@ function getBusbarSeries(){
 function renderRisers(pNum){
   const count=parseInt(document.getElementById(`p${pNum}-count`).value);
   const condType=document.getElementById('conductorType')?.value||'cable';
+  const flatType=document.querySelector('input[name="flatType"]:checked')?.value||'std';
   const series=getBusbarSeries();
   const container=document.getElementById(`p${pNum}-risers`);
   container.innerHTML='';
@@ -467,7 +518,7 @@ function renderRisers(pNum){
       <div id="p${pNum}-r${r}-unknown-block" style="display:none">
         <div class="riser-grid">
           <div class="form-group"><label>Всего квартир</label><input type="number" id="p${pNum}-r${r}-nTotal" min="0" value="0"></div>
-          <div class="form-group"><label>Кондиционеров (расч.)</label><input type="number" id="p${pNum}-r${r}-acManual" min="0" value="0"></div>
+          ${flatType==='std'?`<div class="form-group"><label>Кондиционеров (расч.)</label><input type="number" id="p${pNum}-r${r}-acManual" min="0" value="0"></div>`:''}
         </div>
       </div>
       <div class="riser-divider"></div>
@@ -658,6 +709,7 @@ function calculate(){
         с поправочным коэффициентом на совместную прокладку 0,93.<br>
         Выбор АВ из условия несрабатывания: Iн ≥ 1,13 · Iрасч.<br>
         Сечение кабеля и номинал шинопровода проверены по допустимым потерям напряжения, заданным пользователем.<br>
+        Удельные электрические нагрузки приняты по СП 256.1325800.2016 (с изменением №9) или по Методике расчёта электрических нагрузок многоквартирных домов, утверждённой Правительством Москвы 30.12.2020.<br>
         * Параметры шинопроводов приняты по каталогу ЕАЕ E-LINE KX, Каталог 12 от 24.04.2026. Значения R приведены при температуре окружающей среды 35°C (номинальный режим).
       </div>`;
 
