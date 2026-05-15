@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Расчёт электрических нагрузок на квартирных стояках</title>
+<title>Расчёт электрических нагрузок для квартир на ВРУ</title>
 <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#0f1117;--surface:#181c27;--surface2:#1e2335;--surface3:#232840;--border:#2a3050;--accent:#4f8ef7;--accent2:#38d9a9;--accent3:#f7c94f;--text:#e8ecf4;--text2:#8b94b0;--danger:#f76f6f;--radius:10px;--mono:'JetBrains Mono',monospace;}
@@ -91,9 +91,9 @@
   <header>
     <div class="logo-line">
       <div class="logo-icon">⚡</div>
-      <h1>Расчёт электрических нагрузок на квартирных стояках</h1>
+      <h1>Расчёт электрических нагрузок для квартир на ВРУ</h1>
     </div>
-    <div class="subtitle">// ВРУ жилого дома · две панели · до 4 стояков на панель</div>
+    <div class="subtitle">// Расчёт электрических нагрузок для квартир на ВРУ</div>
   </header>
 
   <!-- СЕКЦИЯ 1: ОБЩИЕ ПАРАМЕТРЫ -->
@@ -119,9 +119,9 @@
           <div class="form-group">
             <label>Регион</label>
             <select id="region">
-              <option value="Другие регионы">Другие регионы</option>
               <option value="Москва">Москва</option>
               <option value="Санкт-Петербург">Санкт-Петербург</option>
+              <option value="Другие регионы">Другие регионы</option>
             </select>
           </div>
         </div>
@@ -140,7 +140,7 @@
 
       <div class="divider"></div>
 
-      <div class="subsection-label">Силовая нагрузка — общие параметры</div>
+      <div class="subsection-label">Общие параметры дома</div>
       <div class="form-grid">
         <div class="form-group">
           <label>Средняя площадь комнат, м²</label>
@@ -167,16 +167,43 @@
 
       <div class="divider"></div>
 
-      <div class="subsection-label">Кабель — общие параметры</div>
+      <div class="subsection-label">Проводник — общие параметры</div>
       <div class="form-grid">
-        <div class="form-group"><label>Материал жил</label>
-          <select id="cableMat"><option value="Медь">Медь</option><option value="Алюминий">Алюминий</option></select>
+        <div class="form-group"><label>Материал</label>
+          <select id="cableMat" onchange="setConductorType()">
+            <option value="Медь">Медь</option>
+            <option value="Алюминий">Алюминий</option>
+          </select>
         </div>
-        <div class="form-group"><label>Тип кабеля</label>
-          <select id="wireType"><option value="Одножильный">Одножильный</option><option value="Многожильный">Многожильный</option></select>
+        <div class="form-group"><label>Тип проводника</label>
+          <select id="conductorType" onchange="setConductorType()">
+            <option value="cable">Кабель</option>
+            <option value="busbar">Шинопровод</option>
+          </select>
         </div>
-        <div class="form-group"><label>Марка кабеля</label>
-          <input type="text" id="cableMark" placeholder="например, ВВГнг-LS">
+      </div>
+
+      <div id="block-cable" style="margin-top:12px">
+        <div class="form-grid">
+          <div class="form-group"><label>Тип кабеля</label>
+            <select id="wireType"><option value="Одножильный">Одножильный</option><option value="Многожильный">Многожильный</option></select>
+          </div>
+          <div class="form-group"><label>Марка кабеля</label>
+            <input type="text" id="cableMark" placeholder="например, ВВГнг-LS">
+          </div>
+          <div class="form-group"><label>ΔU доп. на стояках, %</label>
+            <input type="number" id="cableDuLimit" min="0.1" max="10" value="2.0" step="0.1">
+          </div>
+        </div>
+      </div>
+
+      <div id="block-busbar" class="hidden" style="margin-top:12px">
+        <div class="hint">Серия шинопровода определяется автоматически по материалу: Медь → KXC-Cu, Алюминий → KXA-Al</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>ΔU доп. на стояках, %</label>
+            <input type="number" id="bsDuLimit" min="0.1" max="10" value="2.0" step="0.1">
+          </div>
         </div>
       </div>
 
@@ -198,7 +225,7 @@
   <!-- СЕКЦИЯ 2: ПАНЕЛИ И СТОЯКИ -->
   <div class="section open" id="sec2">
     <div class="section-header" onclick="toggleSection('sec2')">
-      <div class="section-title"><div class="section-num yellow">2</div>Панели и стояки</div>
+      <div class="section-title"><div class="section-num yellow">2</div>Панели и квартирные стояки</div>
       <div class="chevron">▼</div>
     </div>
     <div class="section-body">
@@ -206,7 +233,7 @@
         <div class="panel-card">
           <div class="panel-title">Панель 1</div>
           <div class="form-group">
-            <label>Число стояков</label>
+            <label>Число квартирных стояков</label>
             <select id="p1-count" onchange="renderRisers(1)">
               <option value="1">1</option><option value="2">2</option>
               <option value="3">3</option><option value="4">4</option>
@@ -217,7 +244,7 @@
         <div class="panel-card">
           <div class="panel-title p2">Панель 2</div>
           <div class="form-group">
-            <label>Число стояков</label>
+            <label>Число квартирных стояков</label>
             <select id="p2-count" onchange="renderRisers(2)">
               <option value="1">1</option><option value="2">2</option>
               <option value="3">3</option><option value="4">4</option>
@@ -255,6 +282,83 @@ const avSeries=[6,10,16,20,25,32,40,50,63,80,100,125,160,200,250,315,400,500,630
 const sectionsSeries=[1.5,2.5,4,6,10,16,25,35,50,70,95,120,150,185,240,300,400,500,625,800,1000];
 const C={Медь:72,Алюминий:49};
 
+// ===================== ШИНОПРОВОДЫ EAE E-LINE KX =====================
+// R при температуре среды 35°C (мОм/м), X независимое от температуры (мОм/м)
+const busbarData = {
+  "KXA": {
+    label: "KXA-Al (алюминий)",
+    ratings: {
+      400:  {r: 0.258, x: 0.035},
+      500:  {r: 0.225, x: 0.033},
+      630:  {r: 0.159, x: 0.027},
+      800:  {r: 0.116, x: 0.021},
+      1000: {r: 0.101, x: 0.020},
+      1250: {r: 0.058, x: 0.013},
+      1350: {r: 0.052, x: 0.013},
+      1600: {r: 0.043, x: 0.010},
+      2000: {r: 0.035, x: 0.008},
+      2500: {r: 0.028, x: 0.007},
+      3200: {r: 0.022, x: 0.005},
+      4000: {r: 0.016, x: 0.004},
+      5000: {r: 0.014, x: 0.003},
+      6000: {r: 0.010, x: 0.002},
+    }
+  },
+  "KXC": {
+    label: "KXC-Cu (медь)",
+    ratings: {
+      550:  {r: 0.225, x: 0.033},
+      650:  {r: 0.159, x: 0.027},
+      800:  {r: 0.116, x: 0.021},
+      1000: {r: 0.080, x: 0.015},
+      1250: {r: 0.058, x: 0.013},
+      1350: {r: 0.052, x: 0.013},
+      1600: {r: 0.041, x: 0.010},
+      2000: {r: 0.033, x: 0.008},
+      2500: {r: 0.026, x: 0.007},
+      3300: {r: 0.019, x: 0.005},
+      3600: {r: 0.016, x: 0.005},
+      4000: {r: 0.015, x: 0.004},
+      5000: {r: 0.010, x: 0.003},
+      6300: {r: 0.006, x: 0.002},
+    }
+  }
+};
+
+function updateBusbarRating(pNum) {
+  const series = document.getElementById(`bs${pNum}-series`).value;
+  const sel = document.getElementById(`bs${pNum}-rating`);
+  sel.innerHTML = '';
+  Object.keys(busbarData[series].ratings).forEach(r => {
+    sel.innerHTML += `<option value="${r}">${r} А</option>`;
+  });
+}
+
+function selectBusbar(series, iAv, iCalc, len, cosPhi, duLimit) {
+  const sinPhi = round3(Math.sqrt(1 - cosPhi * cosPhi));
+  const ratings = busbarData[series].ratings;
+  for(const [rating, {r, x}] of Object.entries(ratings)){
+    const iRating = parseInt(rating);
+    if(iRating < iAv) continue;
+    const duV = round2(Math.sqrt(3) * len * iCalc * (r * cosPhi + x * sinPhi) * 1e-3);
+    const duPct = round3(duV / 380 * 100);
+    if(duPct <= duLimit) return {rating: iRating, r, x, sinPhi, duV, duPct};
+  }
+  return null;
+}
+
+function calcBusbar(pNum, iCalc, cosPhi) {
+  const series = document.getElementById(`bs${pNum}-series`)?.value;
+  const rating = parseInt(document.getElementById(`bs${pNum}-rating`)?.value);
+  const len = parseFloat(document.getElementById(`bs${pNum}-len`)?.value) || 0;
+  if (!series || !rating || !len) return null;
+  const {r, x} = busbarData[series].ratings[rating];
+  const sinPhi = round3(Math.sqrt(1 - cosPhi * cosPhi));
+  const duV = round2(Math.sqrt(3) * len * iCalc * (r * cosPhi + x * sinPhi) * 1e-3);
+  const duPct = round3(duV / 380 * 100);
+  return {series, rating, len, r, x, sinPhi, duV, duPct};
+}
+
 function interp(x,xA,yA){
   if(x<=xA[0])return yA[0];if(x>=xA[xA.length-1])return yA[yA.length-1];
   for(let i=0;i<xA.length-1;i++)if(x>=xA[i]&&x<=xA[i+1]){const t=(x-xA[i])/(xA[i+1]-xA[i]);return yA[i]+t*(yA[i+1]-yA[i]);}
@@ -271,16 +375,16 @@ function getCableTable(mat,wt){
 }
 function getPeSection(p){if(p<35)return p;return sectionsSeries.find(s=>s>=p/2)||sectionsSeries[sectionsSeries.length-1];}
 function formatCable(s,wt,m){const pe=getPeSection(s);return wt==='Многожильный'?`${m} 5×${s} мм²`:`${m} 4×(1×${s}) + 1×${pe} мм²`;}
-function selectCable(iAv,p,l,mat,wt){
+function selectCable(iAv,p,l,mat,wt,duLimit=2.0){
   const t=getCableTable(mat,wt);
   for(const s of Object.keys(t).map(Number).sort((a,b)=>a-b)){
-    const id=t[s];if(id<iAv)continue;const du=round3(p*l/(C[mat]*s));if(du<=2.5)return{section:s,iDop:id,du};
+    const id=t[s];if(id<iAv)continue;const du=round3(p*l/(C[mat]*s));if(du<=duLimit)return{section:s,iDop:id,du};
   }return null;
 }
 
 // Расчёт мощности для набора квартир
 function calcPower(rd, flatType, region, avgArea, cityGroup, climate, pStudio, p1k, p2k, p3k, p4k){
-  const{nStudio,n1k,n2k,n3k,n4k,nTotal}=rd;
+  const{nStudio,n1k,n2k,n3k,n4k,nTotal,acMode,acManual}=rd;
   let pInstalled,pFlats,specificLoad=null,ks=null;
   if(flatType==='std'){
     specificLoad=round3(getSpecificLoad(region,nTotal));
@@ -291,12 +395,18 @@ function calcPower(rd, flatType, region, avgArea, cityGroup, climate, pStudio, p
     pInstalled=round2(nStudio*pStudio+n1k*p1k+n2k*p2k+n3k*p3k+n4k*p4k);
     pFlats=round2(ks*pInstalled);
   }
-  const nRooms=nStudio+n1k+n2k*2+n3k*3+n4k*4;
-  const share=acShare[cityGroup][climate];
-  const nAc=Math.round(nRooms*share);
-  let pAc=0,pAcInst=0;
-  if(nAc>0){const kz=getKz(avgArea);const kc=getKc(nAc);pAc=round2(kc*kz*0.9*nAc);pAcInst=round2(nAc*0.9);}
-  return{pInstalled:round2(pInstalled+pAcInst),pCalc:round2(pFlats+0.9*pAc),specificLoad,ks};
+  // Число кондиционеров — авто или вручную
+  let nAc=0;
+  if(acMode==='manual'){
+    nAc=acManual||0;
+  } else {
+    const nRooms=nStudio+n1k+n2k*2+n3k*3+n4k*4;
+    const share=acShare[cityGroup][climate];
+    nAc=Math.round(nRooms*share);
+  }
+  let pAc=0,pAcInst=0,kcAc=null;
+  if(nAc>0){const kz=getKz(avgArea);const kc=getKc(nAc);kcAc=round3(kc);pAc=round2(kc*kz*0.9*nAc);pAcInst=round2(nAc*0.9);}
+  return{pInstalled:round2(pInstalled+pAcInst),pCalc:round2(pFlats+0.9*pAc),specificLoad,ks,nAc,kcAc};
 }
 
 function toggleSection(id){document.getElementById(id).classList.toggle('open');}
@@ -312,33 +422,79 @@ function setCosPhi(val){
   document.querySelector(`input[value="${val}"]`).checked=true;
 }
 
+function setConductorType(){
+  const type=document.getElementById('conductorType').value;
+  document.getElementById('block-cable').classList.toggle('hidden',type!=='cable');
+  document.getElementById('block-busbar').classList.toggle('hidden',type!=='busbar');
+  renderRisers(1); renderRisers(2);
+}
+
+function getBusbarSeries(){
+  return document.getElementById('cableMat').value==='Медь' ? 'KXC' : 'KXA';
+}
+
 function renderRisers(pNum){
   const count=parseInt(document.getElementById(`p${pNum}-count`).value);
+  const condType=document.getElementById('conductorType')?.value||'cable';
+  const series=getBusbarSeries();
   const container=document.getElementById(`p${pNum}-risers`);
   container.innerHTML='';
   for(let r=1;r<=count;r++){
     const block=document.createElement('div');
     block.className='riser-block';
-    let flatFields='';
-    [['nStudio','Студии'],['n1k','1-комн'],['n2k','2-комн'],['n3k','3-комн'],['n4k','4-комн']].forEach(([id,lbl])=>{
-      flatFields+=`<div class="form-group"><label>${lbl}</label><input type="number" id="p${pNum}-r${r}-${id}" min="0" value="0"></div>`;
-    });
+    const flatFields=[['nStudio','Студии'],['n1k','1-комн'],['n2k','2-комн'],['n3k','3-комн'],['n4k','4-комн']].map(([id,lbl])=>
+      `<div class="form-group"><label>${lbl}</label><input type="number" id="p${pNum}-r${r}-${id}" min="0" value="0"></div>`
+    ).join('');
+    let condFields='';
+    if(condType==='cable'){
+      condFields=`<div class="form-group"><label>Длина кабеля, м</label><input type="number" id="p${pNum}-r${r}-len" min="1" placeholder="м" step="0.5"></div>`;
+    } else {
+      condFields=`<div class="form-group"><label>Длина шинопровода, м</label><input type="number" id="p${pNum}-r${r}-len" min="1" placeholder="м" step="0.5"></div>`;
+    }
     block.innerHTML=`
-      <div class="riser-label">Стояк ${r}</div>
-      <div class="riser-grid">${flatFields}</div>
+      <div class="riser-label">Квартирный стояк ${r}</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <label class="radio-btn active" id="p${pNum}-r${r}-btn-known" onclick="setRiserMode(${pNum},${r},'known')" style="font-size:12px;padding:6px 12px">
+          <input type="radio" name="p${pNum}-r${r}-mode" value="known" checked> Состав квартир известен
+        </label>
+        <label class="radio-btn" id="p${pNum}-r${r}-btn-unknown" onclick="setRiserMode(${pNum},${r},'unknown')" style="font-size:12px;padding:6px 12px">
+          <input type="radio" name="p${pNum}-r${r}-mode" value="unknown"> Состав квартир неизвестен
+        </label>
+      </div>
+      <div id="p${pNum}-r${r}-known-block">
+        <div class="riser-grid">${flatFields}</div>
+      </div>
+      <div id="p${pNum}-r${r}-unknown-block" style="display:none">
+        <div class="riser-grid">
+          <div class="form-group"><label>Всего квартир</label><input type="number" id="p${pNum}-r${r}-nTotal" min="0" value="0"></div>
+          <div class="form-group"><label>Кондиционеров (расч.)</label><input type="number" id="p${pNum}-r${r}-acManual" min="0" value="0"></div>
+        </div>
+      </div>
       <div class="riser-divider"></div>
-      <div class="riser-grid">
-        <div class="form-group"><label>Длина кабеля, м</label><input type="number" id="p${pNum}-r${r}-len" min="1" placeholder="м" step="0.5"></div>
-      </div>`;
+      <div class="riser-grid">${condFields}</div>`;
     container.appendChild(block);
   }
+}
+
+function setRiserMode(pNum,r,mode){
+  document.getElementById(`p${pNum}-r${r}-known-block`).style.display=mode==='known'?'block':'none';
+  document.getElementById(`p${pNum}-r${r}-unknown-block`).style.display=mode==='unknown'?'block':'none';
+  document.getElementById(`p${pNum}-r${r}-btn-known`).classList.toggle('active',mode==='known');
+  document.getElementById(`p${pNum}-r${r}-btn-unknown`).classList.toggle('active',mode==='unknown');
 }
 
 function getRiserData(pNum,r,flatType){
   const g=(f)=>parseFloat(document.getElementById(`p${pNum}-r${r}-${f}`)?.value)||0;
   const len=g('len');
+  const condType=document.getElementById('conductorType')?.value||'cable';
+  const mode=document.querySelector(`input[name="p${pNum}-r${r}-mode"]:checked`)?.value||'known';
+  if(mode==='unknown'){
+    const nTotal=g('nTotal');
+    const acManual=g('acManual');
+    return{nStudio:0,n1k:0,n2k:0,n3k:0,n4k:0,nTotal,len,acMode:'manual',acManual,condType};
+  }
   const nStudio=g('nStudio'),n1k=g('n1k'),n2k=g('n2k'),n3k=g('n3k'),n4k=g('n4k');
-  return{nStudio,n1k,n2k,n3k,n4k,nTotal:nStudio+n1k+n2k+n3k+n4k,len};
+  return{nStudio,n1k,n2k,n3k,n4k,nTotal:nStudio+n1k+n2k+n3k+n4k,len,acMode:'auto',acManual:null,condType};
 }
 
 function round1(x){return Math.round(x*10)/10;}
@@ -375,6 +531,7 @@ function calculate(){
 
       // Суммарные данные по панели для итогового расчёта
       let panelNStudio=0,panelN1k=0,panelN2k=0,panelN3k=0,panelN4k=0,panelNTotal=0;
+      let panelAcManual=0,panelHasManualAc=false;
       let hasRisers=false;
 
       // Расчёт каждого стояка
@@ -388,10 +545,42 @@ function calculate(){
         const iCalc=calcCurrent(res.pCalc,cosPhi);
         const iAv=selectAv(iCalc);
         if(!iAv)throw new Error(`Стояк ${r} панели ${pNum}: ток ${iCalc}А превышает 630А`);
-        const cable=selectCable(iAv,res.pCalc,rd.len,mat,wireType);
-        if(!cable)throw new Error(`Стояк ${r} панели ${pNum}: не удалось подобрать кабель`);
-        const{section,iDop,du}=cable;
-        const duClass=du>2.0?'yellow':'green';
+
+        let condHtml='';
+        if(rd.condType==='busbar'){
+          // Шинопровод
+          const series=getBusbarSeries();
+          const duLimit=parseFloat(document.getElementById('bsDuLimit')?.value)||2.0;
+          const bs=selectBusbar(series, iAv, iCalc, rd.len, cosPhi, duLimit);
+          if(!bs)throw new Error(`Стояк ${r} панели ${pNum}: не удалось подобрать шинопровод — проверьте длину или увеличьте допустимые потери`);
+          const duClass=bs.duPct>duLimit*0.8?'yellow':'green';
+          condHtml=`
+            <div class="res-row"><span class="res-label">Потери напряжения</span><span class="res-val ${duClass}">${bs.duPct} % (доп. ${duLimit} %)</span></div>
+            <div class="res-cable">
+              <span>АВ:</span> ${iAv} А<br>
+              <span>Шинопровод:</span> ${series==='KXC'?'KXC-Cu (медь)':'KXA-Al (алюминий)'}, номинал не менее ${bs.rating} А<br>
+              <span>Температура расчёта:</span> t среды = 35°C<br>
+              <span>R удельное:</span> ${bs.r} мОм/м<br>
+              <span>X удельное:</span> ${bs.x} мОм/м<br>
+              <span>cos(φ) / sin(φ):</span> ${cosPhi} / ${bs.sinPhi}<br>
+              <span>Формула:</span> ΔU = √3 · L · I · (R · cosφ + X · sinφ) · 10⁻³<br>
+              <span>Подстановка:</span> ΔU = √3 · ${rd.len} · ${iCalc} · (${bs.r} · ${cosPhi} + ${bs.x} · ${bs.sinPhi}) · 10⁻³ = ${bs.duV} В (${bs.duPct} %)
+            </div>`;
+        } else {
+          // Кабель
+          const cableDuLimit=parseFloat(document.getElementById('cableDuLimit')?.value)||2.0;
+          const cable=selectCable(iAv,res.pCalc,rd.len,mat,wireType,cableDuLimit);
+          if(!cable)throw new Error(`Стояк ${r} панели ${pNum}: не удалось подобрать кабель — проверьте длину или увеличьте допустимые потери`);
+          const{section,iDop,du}=cable;
+          const duClass=du>cableDuLimit*0.8?'yellow':'green';
+          condHtml=`
+            <div class="res-row"><span class="res-label">Потери напряжения</span><span class="res-val ${duClass}">${du} % (доп. ${cableDuLimit} %)</span></div>
+            <div class="res-cable">
+              <span>АВ:</span> ${iAv} А<br>
+              <span>Рекомендуемый кабель (сечение не менее ${section} мм²):</span> ${formatCable(section,wireType,mark)}<br>
+              <span>Iдоп:</span> ${iDop} А
+            </div>`;
+        }
 
         const flatDesc=flatType==='std'
           ?`${rd.nTotal} кв.`
@@ -405,25 +594,27 @@ function calculate(){
             ${flatType==='std'
               ? `<div class="res-row"><span class="res-label">Удельная мощность</span><span class="res-val">${res.specificLoad} кВт/кв</span></div>`
               : `<div class="res-row"><span class="res-label">Коэф. одновременности Кс</span><span class="res-val">${res.ks}</span></div>`}
+            ${res.nAc>0?`<div class="res-row"><span class="res-label">Кондиционеров</span><span class="res-val">${res.nAc} шт.</span></div><div class="res-row"><span class="res-label">Кс кондиционеров</span><span class="res-val">${res.kcAc}</span></div>`:''}
             <div class="res-row"><span class="res-label">Р расчётная</span><span class="res-val">${res.pCalc} кВт</span></div>
             <div class="res-row"><span class="res-label">cos(φ)</span><span class="res-val">${cosPhi}</span></div>
             <div class="res-row"><span class="res-label">Ток расчётный</span><span class="res-val">${iCalc} А</span></div>
-            <div class="res-row"><span class="res-label">Потери напряжения</span><span class="res-val ${duClass}">${du} %</span></div>
-            <div class="res-cable">
-              <span>АВ:</span> ${iAv} А<br>
-              <span>Кабель:</span> ${formatCable(section,wireType,mark)}<br>
-              <span>Iдоп:</span> ${iDop} А
-            </div>
+            ${condHtml}
           </div>`;
 
         // Накапливаем для итога по панели
         panelNStudio+=rd.nStudio; panelN1k+=rd.n1k; panelN2k+=rd.n2k;
         panelN3k+=rd.n3k; panelN4k+=rd.n4k; panelNTotal+=rd.nTotal;
+        if(rd.acMode==='manual'){panelHasManualAc=true;panelAcManual+=rd.acManual||0;}
+        else{panelAcManual+=res.nAc;}
       }
 
       // Итог по панели — новый расчёт по суммарным квартирам
       if(hasRisers && panelNTotal>0){
-        const panelRd={nStudio:panelNStudio,n1k:panelN1k,n2k:panelN2k,n3k:panelN3k,n4k:panelN4k,nTotal:panelNTotal};
+        const panelRd={
+          nStudio:panelNStudio,n1k:panelN1k,n2k:panelN2k,n3k:panelN3k,n4k:panelN4k,nTotal:panelNTotal,
+          acMode: panelHasManualAc ? 'manual' : 'auto',
+          acManual: panelHasManualAc ? panelAcManual : null
+        };
         const panelRes=calcPower(panelRd,flatType,region,avgArea,cityGroup,climate,pStudio,p1k,p2k,p3k,p4k);
         const panelI=calcCurrent(panelRes.pCalc,cosPhi);
 
@@ -449,6 +640,7 @@ function calculate(){
             ${flatType==='std'
               ? `<div class="res-row"><span class="res-label">Удельная мощность</span><span class="res-val yellow">${panelRes.specificLoad} кВт/кв</span></div>`
               : `<div class="res-row"><span class="res-label">Коэф. одновременности Кс</span><span class="res-val yellow">${panelRes.ks}</span></div>`}
+            ${panelRes.nAc>0?`<div class="res-row"><span class="res-label">Кондиционеров</span><span class="res-val yellow">${panelRes.nAc} шт.</span></div><div class="res-row"><span class="res-label">Кс кондиционеров</span><span class="res-val yellow">${panelRes.kcAc}</span></div>`:''}
             <div class="res-row"><span class="res-label">Р расчётная</span><span class="res-val yellow">${panelRes.pCalc} кВт</span></div>
             <div class="res-row"><span class="res-label">cos(φ)</span><span class="res-val yellow">${cosPhi}</span></div>
             <div class="res-row"><span class="res-label">Ток панели</span><span class="res-val yellow">${panelI} А</span></div>
@@ -464,7 +656,9 @@ function calculate(){
       <div class="res-note">
         Длительно допустимые токи приняты по ГОСТ 31996-2012, переменный ток, прокладка на воздухе,
         с поправочным коэффициентом на совместную прокладку 0,93.<br>
-        Выбор АВ из условия несрабатывания: Iн ≥ 1,13 · Iрасч.
+        Выбор АВ из условия несрабатывания: Iн ≥ 1,13 · Iрасч.<br>
+        Сечение кабеля и номинал шинопровода проверены по допустимым потерям напряжения, заданным пользователем.<br>
+        * Параметры шинопроводов приняты по каталогу ЕАЕ E-LINE KX, Каталог 12 от 24.04.2026. Значения R приведены при температуре окружающей среды 35°C (номинальный режим).
       </div>`;
 
     body.innerHTML=html;
