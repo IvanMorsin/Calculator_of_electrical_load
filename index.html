@@ -82,6 +82,8 @@
   .res-panel-summary{margin-top:16px;padding:14px;background:rgba(247,201,79,0.05);border:1px solid rgba(247,201,79,0.25);border-radius:8px;}
   .res-panel-summary-title{font-size:11px;font-family:var(--mono);color:var(--accent3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;}
   .res-flat-breakdown{font-size:11px;font-family:var(--mono);color:var(--text2);margin-top:4px;}
+  .res-total{margin-top:20px;padding:16px;background:rgba(247,201,79,0.07);border:1px solid rgba(247,201,79,0.3);border-radius:8px;}
+  .res-total-title{font-size:12px;font-family:var(--mono);color:var(--accent3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(247,201,79,0.2);}
   .res-note{font-size:11px;color:var(--text2);font-family:var(--mono);margin-top:20px;line-height:1.7;padding:12px 14px;background:rgba(42,48,80,0.3);border-radius:6px;border-left:2px solid var(--border);}
   .error-msg{color:var(--danger);font-size:13px;font-family:var(--mono);padding:12px 16px;background:rgba(247,111,111,0.08);border-radius:7px;}
 </style>
@@ -132,7 +134,14 @@
             <select id="region">
               <option value="Москва">Москва</option>
               <option value="Санкт-Петербург">Санкт-Петербург</option>
-              <option value="Другие регионы">Другие регионы</option>
+              <option value="ЦФО">ЦФО (без Москвы)</option>
+              <option value="СЗФО">СЗФО (без СПб)</option>
+              <option value="ЮФО">ЮФО</option>
+              <option value="СКФО">СКФО</option>
+              <option value="ПФО">ПФО</option>
+              <option value="УФО">УФО</option>
+              <option value="СФО">СФО</option>
+              <option value="ДФВО">ДВФО</option>
             </select>
           </div>
         </div>
@@ -269,11 +278,128 @@
     </div>
   </div>
 
-  <button class="calc-btn" onclick="calculate()">⚡ Рассчитать</button>
+  <button class="calc-btn" onclick="calculatePanels()">⚡ Рассчитать панели</button>
 
-  <div id="result" class="hidden">
-    <div class="result-header">Результаты расчёта</div>
-    <div class="result-body" id="resultBody"></div>
+  <div id="result-panels" class="hidden">
+    <div class="result-header">Результаты — стояки и панели</div>
+    <div class="result-body" id="resultPanelsBody"></div>
+  </div>
+
+  <!-- СЕКЦИЯ 3: ЛИФТЫ -->
+  <div class="section open" id="sec3" style="margin-top:16px">
+    <div class="section-header" onclick="toggleSection('sec3')">
+      <div class="section-title"><div class="section-num" style="background:var(--danger)">3</div>Лифты</div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="section-body">
+      <div class="form-grid" style="margin-top:14px">
+        <div class="form-group">
+          <label>Число лифтов</label>
+          <select id="liftCount" onchange="renderLifts()">
+            <option value="0">Нет лифтов</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="12">12</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="25">25</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Число этажей</label>
+          <input type="number" id="floors" min="1" max="100" placeholder="например, 17">
+        </div>
+      </div>
+      <div id="lifts-grid" class="form-grid" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- СЕКЦИЯ 4: ОДН -->
+  <div class="section open" id="sec4">
+    <div class="section-header" onclick="toggleSection('sec4')">
+      <div class="section-title"><div class="section-num green">4</div>ОДН (послеаварийный режим)</div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="section-body">
+      <div class="hint" style="margin-top:12px">Все мощности указываются для послеаварийного режима работы.</div>
+
+      <div class="subsection-label">ИТП</div>
+      <div class="radio-group">
+        <label class="radio-btn active" id="btn-itp-no" onclick="setODN('itp','no')">
+          <input type="radio" name="itpMode" value="no" checked> Нет
+        </label>
+        <label class="radio-btn" id="btn-itp-yes" onclick="setODN('itp','yes')">
+          <input type="radio" name="itpMode" value="yes"> Есть
+        </label>
+      </div>
+      <div id="block-itp" class="hidden" style="margin-top:10px">
+        <div class="form-grid">
+          <div class="form-group"><label>Мощность ИТП, кВт</label>
+            <input type="number" id="itpPower" min="0" placeholder="кВт" step="0.5">
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection-label">ВНС</div>
+      <div class="radio-group">
+        <label class="radio-btn active" id="btn-vns-no" onclick="setODN('vns','no')">
+          <input type="radio" name="vnsMode" value="no" checked> Нет
+        </label>
+        <label class="radio-btn" id="btn-vns-yes" onclick="setODN('vns','yes')">
+          <input type="radio" name="vnsMode" value="yes"> Есть
+        </label>
+      </div>
+      <div id="block-vns" class="hidden" style="margin-top:10px">
+        <div class="form-grid">
+          <div class="form-group"><label>Мощность ВНС, кВт</label>
+            <input type="number" id="vnsPower" min="0" placeholder="кВт" step="0.5">
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection-label">Тепловые завесы</div>
+      <div class="radio-group">
+        <label class="radio-btn active" id="btn-tz-no" onclick="setODN('tz','no')">
+          <input type="radio" name="tzMode" value="no" checked> Нет
+        </label>
+        <label class="radio-btn" id="btn-tz-yes" onclick="setODN('tz','yes')">
+          <input type="radio" name="tzMode" value="yes"> Есть
+        </label>
+      </div>
+      <div id="block-tz" class="hidden" style="margin-top:10px">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Количество завес, шт.</label>
+            <select id="tzCount" onchange="renderCurtains()">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="8">8</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+        </div>
+        <div id="curtains-grid" class="form-grid" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="calc-btn" onclick="calculateVRU()" style="background:linear-gradient(135deg,var(--accent2),#2ab08a);margin-top:8px">🏢 Рассчитать ВРУ (послеаварийный режим)</button>
+
+  <div id="result-vru" class="hidden">
+    <div class="result-header">Результаты — ВРУ (послеаварийный режим)</div>
+    <div class="result-body" id="resultVRUBody"></div>
   </div>
 </div>
 
@@ -378,6 +504,52 @@ function calcBusbar(pNum, iCalc, cosPhi) {
   return {series, rating, len, r, x, sinPhi, duV, duPct};
 }
 
+// Коэффициент спроса для лифтов (табл. 6.4)
+const ksLiftLow  = {2:0.8, 4:0.7, 6:0.65, 10:0.5, 20:0.4, 25:0.35}; // до 12 эт.
+const ksLiftHigh = {2:0.9, 4:0.8, 6:0.75, 10:0.6, 20:0.5, 25:0.4};  // 12 и выше
+
+function getKsLift(nLifts, floors){
+  const table = floors >= 12 ? ksLiftHigh : ksLiftLow;
+  const keys = Object.keys(table).map(Number);
+  const vals = keys.map(k=>table[k]);
+  if(nLifts <= keys[0]) return vals[0];
+  if(nLifts >= keys[keys.length-1]) return vals[vals.length-1];
+  return interp(nLifts, keys, vals);
+}
+
+function renderLifts(){
+  const count = parseInt(document.getElementById('liftCount').value)||0;
+  const grid = document.getElementById('lifts-grid');
+  grid.innerHTML = '';
+  for(let i=1; i<=count; i++){
+    grid.innerHTML += `
+      <div class="form-group">
+        <label>Лифт ${i}, кВт</label>
+        <input type="number" id="lift-${i}" min="1" max="500" placeholder="кВт" step="0.5">
+      </div>`;
+  }
+}
+function getRegionalFactor(region){
+  if(region==='Москва' || region==='Санкт-Петербург') return 1.0;
+  if(region==='ЦФО') return 0.81;
+  return 0.91; // СЗФО, ЮФО, СКФО, ПФО, УФО, СФО, ДВФО
+}
+
+// Для таблицы удельных нагрузок — все регионы кроме Москвы и СПб используют "Другие регионы"
+function getDensityRegion(region){
+  if(region==='Москва') return 'Москва';
+  if(region==='Санкт-Петербург') return 'Санкт-Петербург';
+  return 'Другие регионы';
+}
+const ksLux = {14: 0.80, 20: 0.65, 30: 0.60, 40: 0.55, 50: 0.50, 60: 0.48, 70: 0.45};
+
+function getKsLux(p) {
+  const keys = Object.keys(ksLux).map(Number);
+  const vals = keys.map(k => ksLux[k]);
+  if(p <= keys[0]) return vals[0];
+  if(p >= keys[keys.length-1]) return vals[vals.length-1];
+  return interp(p, keys, vals);
+}
 function interp(x,xA,yA){
   if(x<=xA[0])return yA[0];if(x>=xA[xA.length-1])return yA[yA.length-1];
   for(let i=0;i<xA.length-1;i++)if(x>=xA[i]&&x<=xA[i+1]){const t=(x-xA[i])/(xA[i+1]-xA[i]);return yA[i]+t*(yA[i+1]-yA[i]);}
@@ -389,7 +561,7 @@ function getSpecificLoad(region,n){
     if(n<100) return round3(10.838*Math.pow(n,-0.544));
     return round3(-0.0006*n+1.037);
   }
-  const d=densityPower[region];const k=Object.keys(d).map(Number);return interp(n,k,k.map(x=>d[x]));
+  const d=densityPower[getDensityRegion(region)];const k=Object.keys(d).map(Number);return interp(n,k,k.map(x=>d[x]));
 }
 function getSimultaneity(n){
   if(getMethodology()==='msk'){
@@ -448,9 +620,7 @@ function toggleSection(id){document.getElementById(id).classList.toggle('open');
 function setMethodology(method){
   document.getElementById('btn-sp256').classList.toggle('active',method==='sp256');
   document.getElementById('btn-msk').classList.toggle('active',method==='msk');
-  // Скрываем блок кондиционеров при московской методике
   document.getElementById('block-ac').classList.toggle('hidden',method==='msk');
-  // cos(φ) фиксируем 0.98 для московской методики
   if(method==='msk'){
     setCosPhi('0.98');
     document.getElementById('cosPhiGroup').style.pointerEvents='none';
@@ -460,6 +630,7 @@ function setMethodology(method){
     document.getElementById('cosPhiGroup').style.opacity='';
   }
 }
+function setFlatType(type){
   document.getElementById('block-std').classList.toggle('hidden',type!=='std');
   document.getElementById('block-lux').classList.toggle('hidden',type!=='lux');
   document.getElementById('btn-std').classList.toggle('active',type==='std');
@@ -554,9 +725,29 @@ function round3(x){return Math.round(x*1000)/1000;}
 function getVal(id){return parseFloat(document.getElementById(id)?.value)||0;}
 function getStr(id){return document.getElementById(id)?.value.trim()||'';}
 
-function calculate(){
-  const resultDiv=document.getElementById('result');
-  const body=document.getElementById('resultBody');
+function renderCurtains(){
+  const count=parseInt(document.getElementById('tzCount').value)||0;
+  const grid=document.getElementById('curtains-grid');
+  grid.innerHTML='';
+  for(let i=1;i<=count;i++){
+    grid.innerHTML+=`
+      <div class="form-group">
+        <label>Завеса ${i}, кВт</label>
+        <input type="number" id="tz-${i}" min="0.5" max="100" placeholder="кВт" step="0.5">
+      </div>`;
+  }
+}
+
+function setODN(type, val){
+  document.getElementById(`btn-${type}-no`).classList.toggle('active', val==='no');
+  document.getElementById(`btn-${type}-yes`).classList.toggle('active', val==='yes');
+  document.getElementById(`block-${type}`).classList.toggle('hidden', val==='no');
+  if(type==='tz' && val==='yes') renderCurtains();
+}
+
+function calculatePanels(){
+  const resultDiv=document.getElementById('result-panels');
+  const body=document.getElementById('resultPanelsBody');
   resultDiv.classList.remove('hidden');
   try{
     const flatType=document.querySelector('input[name="flatType"]:checked').value;
@@ -574,6 +765,9 @@ function calculate(){
       throw new Error('Введите мощность хотя бы одного типа квартиры');
 
     let html='<div class="res-panels">';
+    // Накопители для ВРУ
+    let vruNStudio=0,vruN1k=0,vruN2k=0,vruN3k=0,vruN4k=0,vruNTotal=0;
+    let vruAcManual=0,vruHasManualAc=false;
 
     for(let pNum=1;pNum<=2;pNum++){
       const count=parseInt(document.getElementById(`p${pNum}-count`).value);
@@ -661,13 +855,32 @@ function calculate(){
 
       // Итог по панели — новый расчёт по суммарным квартирам
       if(hasRisers && panelNTotal>0){
-        const panelRd={
-          nStudio:panelNStudio,n1k:panelN1k,n2k:panelN2k,n3k:panelN3k,n4k:panelN4k,nTotal:panelNTotal,
-          acMode: panelHasManualAc ? 'manual' : 'auto',
-          acManual: panelHasManualAc ? panelAcManual : null
-        };
-        const panelRes=calcPower(panelRd,flatType,region,avgArea,cityGroup,climate,pStudio,p1k,p2k,p3k,p4k);
-        const panelI=calcCurrent(panelRes.pCalc,cosPhi);
+        let panelPInstalled, panelPCalc, panelKo, panelSpecificLoad=null;
+
+        if(flatType==='lux'){
+          // Установленная мощность с коэффициентом спроса Кс по каждому типу
+          const ksStudio=round3(getKsLux(pStudio)), ks1k=round3(getKsLux(p1k));
+          const ks2k=round3(getKsLux(p2k)), ks3k=round3(getKsLux(p3k)), ks4k=round3(getKsLux(p4k));
+          panelPInstalled=round2(
+            panelNStudio*pStudio*ksStudio + panelN1k*p1k*ks1k +
+            panelN2k*p2k*ks2k + panelN3k*p3k*ks3k + panelN4k*p4k*ks4k
+          );
+          panelKo=round3(getSimultaneity(panelNTotal));
+          panelPCalc=round2(panelKo * panelPInstalled);
+        } else {
+          const panelRd={
+            nStudio:panelNStudio,n1k:panelN1k,n2k:panelN2k,n3k:panelN3k,n4k:panelN4k,nTotal:panelNTotal,
+            acMode: panelHasManualAc ? 'manual' : 'auto',
+            acManual: panelHasManualAc ? panelAcManual : null
+          };
+          const panelRes=calcPower(panelRd,flatType,region,avgArea,cityGroup,climate,pStudio,p1k,p2k,p3k,p4k);
+          panelPInstalled=panelRes.pInstalled;
+          panelPCalc=panelRes.pCalc;
+          panelSpecificLoad=panelRes.specificLoad;
+          panelKo=panelRes.ks;
+        }
+
+        const panelI=calcCurrent(panelPCalc,cosPhi);
 
         // Описание состава квартир
         let flatBreakdown='';
@@ -681,18 +894,25 @@ function calculate(){
           flatBreakdown=`<div class="res-flat-breakdown">${parts.join(' · ')}</div>`;
         }
 
+        // Строка с Кс/удельной для панели
+        let panelKsRow='';
+        if(flatType==='std'){
+          panelKsRow=panelSpecificLoad
+            ?`<div class="res-row"><span class="res-label">Удельная мощность</span><span class="res-val yellow">${panelSpecificLoad} кВт/кв</span></div>`
+            :'';
+        } else {
+          panelKsRow=`
+            <div class="res-row"><span class="res-label">Ко (одновременности)</span><span class="res-val yellow">${panelKo}</span></div>`;
+        }
+
         colHtml+=`
           <div class="res-panel-summary">
             <div class="res-panel-summary-title">Итого панель ${pNum}</div>
             <div class="res-row"><span class="res-label">Квартир на панели</span><span class="res-val yellow">${panelNTotal}</span></div>
             ${flatBreakdown}
-            <div class="res-row"><span class="res-label">Р установленная</span><span class="res-val yellow">${panelRes.pInstalled} кВт</span></div>
-            <div class="res-row"><span class="res-label">Кс</span><span class="res-val yellow">1</span></div>
-            ${flatType==='std'
-              ? `<div class="res-row"><span class="res-label">Удельная мощность</span><span class="res-val yellow">${panelRes.specificLoad} кВт/кв</span></div>`
-              : `<div class="res-row"><span class="res-label">Коэф. одновременности Кс</span><span class="res-val yellow">${panelRes.ks}</span></div>`}
-            ${panelRes.nAc>0?`<div class="res-row"><span class="res-label">Кондиционеров</span><span class="res-val yellow">${panelRes.nAc} шт.</span></div><div class="res-row"><span class="res-label">Кс кондиционеров</span><span class="res-val yellow">${panelRes.kcAc}</span></div>`:''}
-            <div class="res-row"><span class="res-label">Р расчётная</span><span class="res-val yellow">${panelRes.pCalc} кВт</span></div>
+            <div class="res-row"><span class="res-label">Р установленная (с Кс)</span><span class="res-val yellow">${panelPInstalled} кВт</span></div>
+            ${panelKsRow}
+            <div class="res-row"><span class="res-label">Р расчётная</span><span class="res-val yellow">${panelPCalc} кВт</span></div>
             <div class="res-row"><span class="res-label">cos(φ)</span><span class="res-val yellow">${cosPhi}</span></div>
             <div class="res-row"><span class="res-label">Ток панели</span><span class="res-val yellow">${panelI} А</span></div>
           </div>`;
@@ -700,17 +920,141 @@ function calculate(){
 
       colHtml+='</div>';
       html+=colHtml;
+
+      // Сохраняем для ВРУ
+      vruNStudio+=panelNStudio; vruN1k+=panelN1k; vruN2k+=panelN2k;
+      vruN3k+=panelN3k; vruN4k+=panelN4k; vruNTotal+=panelNTotal;
+      if(panelHasManualAc){vruHasManualAc=true; vruAcManual+=panelAcManual;}
+      else{vruAcManual+=panelAcManual;}
     }
 
     html+='</div>';
-    html+=`
+
+    // Сохраняем данные для calculateVRU
+    window._vruData = {
+      vruNStudio,vruN1k,vruN2k,vruN3k,vruN4k,vruNTotal,
+      vruHasManualAc,vruAcManual,
+      flatType,region,cosPhi,avgArea,cityGroup,climate,
+      pStudio,p1k,p2k,p3k,p4k
+    };
+
+    body.innerHTML=html;
+  }catch(e){
+    body.innerHTML=`<div class="error-msg">⚠ ${e.message}</div>`;
+  }
+}
+
+function calculateVRU(){
+  const resultDiv=document.getElementById('result-vru');
+  const body=document.getElementById('resultVRUBody');
+  resultDiv.classList.remove('hidden');
+  try{
+    if(!window._vruData) throw new Error('Сначала нажмите "Рассчитать панели"');
+    const {vruNStudio,vruN1k,vruN2k,vruN3k,vruN4k,vruNTotal,
+           vruHasManualAc,vruAcManual,flatType,region,cosPhi,
+           avgArea,cityGroup,climate,pStudio,p1k,p2k,p3k,p4k} = window._vruData;
+
+    const kf = getRegionalFactor(region);
+    let vruPInstalled, vruPCalc, vruKsRow='', vruFlatBreakdown='', vruPAc=0;
+
+    if(flatType==='lux'){
+      const ksStudio=round3(getKsLux(pStudio)), ks1k=round3(getKsLux(p1k));
+      const ks2k=round3(getKsLux(p2k)), ks3k=round3(getKsLux(p3k)), ks4k=round3(getKsLux(p4k));
+      vruPInstalled=round2(
+        vruNStudio*pStudio*ksStudio + vruN1k*p1k*ks1k +
+        vruN2k*p2k*ks2k + vruN3k*p3k*ks3k + vruN4k*p4k*ks4k
+      );
+      const vruKo=round3(getSimultaneity(vruNTotal));
+      vruPCalc=round2(vruKo * vruPInstalled);
+      const parts=[];
+      if(vruNStudio>0)parts.push(`студии: ${vruNStudio}, Кс=${ksStudio}`);
+      if(vruN1k>0)parts.push(`1к: ${vruN1k}, Кс=${ks1k}`);
+      if(vruN2k>0)parts.push(`2к: ${vruN2k}, Кс=${ks2k}`);
+      if(vruN3k>0)parts.push(`3к: ${vruN3k}, Кс=${ks3k}`);
+      if(vruN4k>0)parts.push(`4к: ${vruN4k}, Кс=${ks4k}`);
+      vruFlatBreakdown=`<div class="res-flat-breakdown" style="margin:6px 0">${parts.join(' · ')}</div>`;
+      vruKsRow=`<div class="res-row"><span class="res-label">Ко (одновременности)</span><span class="res-val yellow">${vruKo}</span></div>`;
+    } else {
+      const vruRd={nStudio:vruNStudio,n1k:vruN1k,n2k:vruN2k,n3k:vruN3k,n4k:vruN4k,nTotal:vruNTotal,
+        acMode:vruHasManualAc?'manual':'auto', acManual:vruHasManualAc?vruAcManual:null};
+      const vruRes=calcPower(vruRd,flatType,region,avgArea,cityGroup,climate,pStudio,p1k,p2k,p3k,p4k);
+      vruPInstalled=vruRes.pInstalled;
+      vruPCalc=round2(vruRes.pCalc * kf);
+      vruPAc=round2(vruRes.nAc>0 ? getKc(vruRes.nAc)*getKz(avgArea)*0.9*vruRes.nAc : 0);
+      vruKsRow=vruRes.specificLoad
+        ?`<div class="res-row"><span class="res-label">Удельная мощность</span><span class="res-val yellow">${vruRes.specificLoad} кВт/кв</span></div>`:'';
+      if(vruRes.nAc>0){
+        vruKsRow+=`<div class="res-row"><span class="res-label">Кондиционеров</span><span class="res-val yellow">${vruRes.nAc} шт.</span></div>`;
+        vruKsRow+=`<div class="res-row"><span class="res-label">Кз</span><span class="res-val yellow">${round3(getKz(avgArea))}</span></div>`;
+        vruKsRow+=`<div class="res-row"><span class="res-label">Кс кондиционеров</span><span class="res-val yellow">${vruRes.kcAc}</span></div>`;
+        vruKsRow+=`<div class="res-row"><span class="res-label">Р кондиционеров</span><span class="res-val yellow">${vruPAc} кВт</span></div>`;
+      }
+      if(kf!==1.0) vruKsRow+=`<div class="res-row"><span class="res-label">Поправочный коэффициент (табл.7.5а)</span><span class="res-val yellow">${kf}</span></div>`;
+    }
+
+    // Лифты
+    const nLifts=parseInt(document.getElementById('liftCount').value)||0;
+    const floors=parseInt(document.getElementById('floors').value)||0;
+    let liftPCalc=0, liftKs=0, liftInstalled=0, liftHtml='';
+    if(nLifts>0){
+      for(let i=1;i<=nLifts;i++) liftInstalled=round2(liftInstalled+(parseFloat(document.getElementById(`lift-${i}`)?.value)||0));
+      liftKs=round3(getKsLift(nLifts,floors));
+      liftPCalc=round2(liftKs*liftInstalled);
+      liftHtml=`
+        <div class="res-row"><span class="res-label">Лифты — Р установленная</span><span class="res-val yellow">${liftInstalled} кВт</span></div>
+        <div class="res-row"><span class="res-label">Лифты — Кс (табл.6.4)</span><span class="res-val yellow">${liftKs}</span></div>
+        <div class="res-row"><span class="res-label">Лифты — Р расчётная</span><span class="res-val yellow">${liftPCalc} кВт</span></div>`;
+    }
+
+    // ОДН
+    const itpMode=document.querySelector('input[name="itpMode"]:checked').value;
+    const vnsMode=document.querySelector('input[name="vnsMode"]:checked').value;
+    const tzMode=document.querySelector('input[name="tzMode"]:checked').value;
+    const itpP=itpMode==='yes'?(parseFloat(document.getElementById('itpPower').value)||0):0;
+    const vnsP=vnsMode==='yes'?(parseFloat(document.getElementById('vnsPower').value)||0):0;
+    const tzCount=tzMode==='yes'?(parseInt(document.getElementById('tzCount').value)||0):0;
+    let tzInstalled=0;
+    for(let i=1;i<=tzCount;i++) tzInstalled=round2(tzInstalled+(parseFloat(document.getElementById(`tz-${i}`)?.value)||0));
+    const tzKs=tzCount>0?round3(getKc(tzCount)):0;
+    const tzPCalc=round2(tzKs*tzInstalled);
+
+    let odnHtml='';
+    if(itpP>0) odnHtml+=`<div class="res-row"><span class="res-label">ИТП — Р расчётная</span><span class="res-val yellow">${itpP} кВт</span></div>`;
+    if(vnsP>0) odnHtml+=`<div class="res-row"><span class="res-label">ВНС — Р расчётная</span><span class="res-val yellow">${vnsP} кВт</span></div>`;
+    if(tzCount>0){
+      odnHtml+=`<div class="res-row"><span class="res-label">Завесы — кол-во</span><span class="res-val yellow">${tzCount} шт.</span></div>`;
+      odnHtml+=`<div class="res-row"><span class="res-label">Завесы — Р установленная</span><span class="res-val yellow">${tzInstalled} кВт</span></div>`;
+      odnHtml+=`<div class="res-row"><span class="res-label">Завесы — Кс</span><span class="res-val yellow">${tzKs}</span></div>`;
+      odnHtml+=`<div class="res-row"><span class="res-label">Завесы — Р расчётная</span><span class="res-val yellow">${tzPCalc} кВт</span></div>`;
+    }
+
+    // Итог ВРУ
+    const pSila=round2(liftPCalc+itpP+vnsP+tzPCalc+vruPAc);
+    const pVRU=round2(vruPCalc+0.9*pSila);
+    const iVRU38=round2(pVRU/(Math.sqrt(3)*0.38*cosPhi));
+    const iVRU40=round2(pVRU/(Math.sqrt(3)*0.40*cosPhi));
+
+    let html=`
+      <div class="res-total">
+        <div class="res-total-title">⚡ ВРУ — послеаварийный режим — ${vruNTotal} квартир</div>
+        <div class="res-row"><span class="res-label">Всего квартир</span><span class="res-val yellow">${vruNTotal}</span></div>
+        ${vruFlatBreakdown}
+        <div class="res-row"><span class="res-label">Р установленная (квартиры)</span><span class="res-val yellow">${vruPInstalled} кВт</span></div>
+        ${vruKsRow}
+        <div class="res-row"><span class="res-label">Р расчётная (квартиры)</span><span class="res-val yellow">${vruPCalc} кВт</span></div>
+        ${liftHtml}
+        ${odnHtml}
+        <div class="divider" style="margin:10px 0;height:1px;background:rgba(247,201,79,0.3)"></div>
+        <div class="res-row"><span class="res-label">Р силовая суммарно (0.9×)</span><span class="res-val yellow">${pSila} кВт</span></div>
+        <div class="res-row"><span class="res-label" style="font-weight:600">Р расчётная ВРУ = Ркв + 0,9×Рсил</span><span class="res-val yellow" style="font-size:16px">${pVRU} кВт</span></div>
+        <div class="res-row"><span class="res-label">cos(φ)</span><span class="res-val yellow">${cosPhi}</span></div>
+        <div class="res-row"><span class="res-label">Ток ВРУ (U=0,38 кВ)</span><span class="res-val yellow">${iVRU38} А</span></div>
+        <div class="res-row"><span class="res-label">Ток ВРУ (U=0,40 кВ)</span><span class="res-val yellow">${iVRU40} А</span></div>
+      </div>
       <div class="res-note">
-        Длительно допустимые токи приняты по ГОСТ 31996-2012, переменный ток, прокладка на воздухе,
-        с поправочным коэффициентом на совместную прокладку 0,93.<br>
-        Выбор АВ из условия несрабатывания: Iн ≥ 1,13 · Iрасч.<br>
-        Сечение кабеля и номинал шинопровода проверены по допустимым потерям напряжения, заданным пользователем.<br>
+        Расчёт выполнен для послеаварийного режима работы электроустановки.<br>
         Удельные электрические нагрузки приняты по СП 256.1325800.2016 (с изменением №9) или по Методике расчёта электрических нагрузок многоквартирных домов, утверждённой Правительством Москвы 30.12.2020.<br>
-        * Параметры шинопроводов приняты по каталогу ЕАЕ E-LINE KX, Каталог 12 от 24.04.2026. Значения R приведены при температуре окружающей среды 35°C (номинальный режим).
+        * Параметры шинопроводов приняты по каталогу ЕАЕ E-LINE KX, Каталог 12 от 24.04.2026.
       </div>`;
 
     body.innerHTML=html;
