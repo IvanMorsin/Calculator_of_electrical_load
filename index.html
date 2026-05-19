@@ -621,6 +621,7 @@ function setMethodology(method){
   document.getElementById('btn-sp256').classList.toggle('active',method==='sp256');
   document.getElementById('btn-msk').classList.toggle('active',method==='msk');
   document.getElementById('block-ac').classList.toggle('hidden',method==='msk');
+  renderRisers(1); renderRisers(2);
   if(method==='msk'){
     setCosPhi('0.98');
     document.getElementById('cosPhiGroup').style.pointerEvents='none';
@@ -673,7 +674,19 @@ function renderRisers(pNum){
     } else {
       condFields=`<div class="form-group"><label>Длина шинопровода, м</label><input type="number" id="p${pNum}-r${r}-len" min="1" placeholder="м" step="0.5"></div>`;
     }
-    block.innerHTML=`
+    const isMsk = getMethodology()==='msk';
+
+    block.innerHTML = isMsk ? `
+      <div class="riser-label">Квартирный стояк ${r}</div>
+      <div class="riser-grid">
+        <div class="form-group">
+          <label>Всего квартир</label>
+          <input type="number" id="p${pNum}-r${r}-nTotal" min="0" value="0">
+        </div>
+      </div>
+      <div class="riser-divider"></div>
+      <div class="riser-grid">${condFields}</div>`
+    : `
       <div class="riser-label">Квартирный стояк ${r}</div>
       <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
         <label class="radio-btn active" id="p${pNum}-r${r}-btn-known" onclick="setRiserMode(${pNum},${r},'known')" style="font-size:12px;padding:6px 12px">
@@ -709,12 +722,20 @@ function getRiserData(pNum,r,flatType){
   const g=(f)=>parseFloat(document.getElementById(`p${pNum}-r${r}-${f}`)?.value)||0;
   const len=g('len');
   const condType=document.getElementById('conductorType')?.value||'cable';
+
+  // Для методики Москвы 2020 используем только общее количество квартир
+  if(getMethodology()==='msk'){
+    const nTotal=g('nTotal');
+    return {nStudio:0,n1k:0,n2k:0,n3k:0,n4k:0,nTotal,len,acMode:'auto',acManual:null,condType};
+  }
+
   const mode=document.querySelector(`input[name="p${pNum}-r${r}-mode"]:checked`)?.value||'known';
   if(mode==='unknown'){
     const nTotal=g('nTotal');
     const acManual=g('acManual');
     return{nStudio:0,n1k:0,n2k:0,n3k:0,n4k:0,nTotal,len,acMode:'manual',acManual,condType};
   }
+
   const nStudio=g('nStudio'),n1k=g('n1k'),n2k=g('n2k'),n3k=g('n3k'),n4k=g('n4k');
   return{nStudio,n1k,n2k,n3k,n4k,nTotal:nStudio+n1k+n2k+n3k+n4k,len,acMode:'auto',acManual:null,condType};
 }
