@@ -1028,8 +1028,8 @@ function calculateVRU(){
       odnHtml+=`<div class="res-row"><span class="res-label">Завесы — Р расчётная</span><span class="res-val yellow">${tzPCalc} кВт</span></div>`;
     }
 
-    // Итог ВРУ
-    const pSila=round2(liftPCalc+itpP+vnsP+tzPCalc+vruPAc);
+    // Итог ВРУ — кондиционеры уже включены в vruPCalc через calcPower
+    const pSila=round2(liftPCalc+itpP+vnsP+tzPCalc);
     const pVRU=round2(vruPCalc+0.9*pSila);
     const iVRU38=round2(pVRU/(Math.sqrt(3)*0.38*cosPhi));
     const iVRU40=round2(pVRU/(Math.sqrt(3)*0.40*cosPhi));
