@@ -679,22 +679,36 @@ function setMethodology(method){
   document.getElementById('btn-sp256').classList.toggle('active',method==='sp256');
   document.getElementById('btn-msk').classList.toggle('active',method==='msk');
   document.getElementById('block-ac').classList.toggle('hidden',method==='msk');
-  document.getElementById('flatTypeSelector').classList.toggle('hidden',method==='msk'); // Скрываем выбор типа квартир
-  document.getElementById('regionSelector').classList.toggle('hidden',method==='msk'); // Скрываем выбор региона
-  renderRisers(1); renderRisers(2);
+  // Для Методики Москвы скрываем выбор региона и блок обогрева
+  document.getElementById('regionSelector').classList.toggle('hidden',method==='msk');
+  
+  // Для Методики Москвы всегда скрываем блок обогрева независимо от типа квартир
   if(method==='msk'){
+    document.getElementById('block-lux').classList.add('hidden');
     setCosPhi('0.98');
     document.getElementById('cosPhiGroup').style.pointerEvents='none';
     document.getElementById('cosPhiGroup').style.opacity='0.4';
-    setFlatType('std'); // Для методики Москвы всегда стандартные квартиры
   } else {
+    // Для СП256 показываем block-lux только если выбраны квартиры повышенной комфортности
+    const currentType = document.querySelector('input[name="flatType"]:checked').value;
+    document.getElementById('block-lux').classList.toggle('hidden', currentType!=='lux');
     document.getElementById('cosPhiGroup').style.pointerEvents='';
     document.getElementById('cosPhiGroup').style.opacity='';
   }
+  
+  renderRisers(1); renderRisers(2);
 }
 function setFlatType(type){
+  const method = document.querySelector('input[name="methodology"]:checked').value;
   document.getElementById('block-std').classList.toggle('hidden',type!=='std');
-  document.getElementById('block-lux').classList.toggle('hidden',type!=='lux');
+  
+  // Блок обогрева показываем только для СП256 + повышенная комфортность
+  if(method==='msk'){
+    document.getElementById('block-lux').classList.add('hidden'); // Для Москвы всегда скрыт
+  } else {
+    document.getElementById('block-lux').classList.toggle('hidden',type!=='lux');
+  }
+  
   document.getElementById('btn-std').classList.toggle('active',type==='std');
   document.getElementById('btn-lux').classList.toggle('active',type==='lux');
   renderRisers(1); renderRisers(2);
