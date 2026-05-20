@@ -117,6 +117,7 @@
       </div>
       <div class="divider"></div>
 
+      <div id="flatTypeSelector">
       <div class="subsection-label">Тип квартир</div>
       <div class="radio-group">
         <label class="radio-btn active" id="btn-std" onclick="setFlatType('std')">
@@ -126,8 +127,10 @@
           <input type="radio" name="flatType" value="lux"> Повышенная комфортность
         </label>
       </div>
+      </div>
 
       <div id="block-std">
+        <div id="regionSelector">
         <div class="form-grid">
           <div class="form-group">
             <label>Регион</label>
@@ -145,6 +148,7 @@
             </select>
           </div>
         </div>
+        </div>
       </div>
 
       <div id="block-lux" class="hidden">
@@ -156,6 +160,43 @@
           <div class="form-group"><label>3-комнатная</label><input type="number" id="p3k" min="1" max="100" placeholder="кВт" step="0.5"></div>
           <div class="form-group"><label>4-комнатная</label><input type="number" id="p4k" min="1" max="100" placeholder="кВт" step="0.5"></div>
         </div>
+
+        <div class="divider"></div>
+
+        <div class="subsection-label" style="color:var(--danger)">🔥 Электрообогрев и бойлеры</div>
+        <div class="radio-group">
+          <label class="radio-btn active" id="btn-heat-main" onclick="setHeatingMode('main')">
+            <input type="radio" name="heatingMode" value="main" checked> Основной обогрев (k=1.0)
+          </label>
+          <label class="radio-btn" id="btn-heat-mixed" onclick="setHeatingMode('mixed')">
+            <input type="radio" name="heatingMode" value="mixed"> Смешанный обогрев (k=0.7)
+          </label>
+        </div>
+
+        <div class="radio-group" style="margin-top:10px">
+          <label class="radio-btn active" id="btn-heat-bytype" onclick="setHeatingInput('byType')">
+            <input type="radio" name="heatingInput" value="byType" checked> По типам квартир
+          </label>
+          <label class="radio-btn" id="btn-heat-total" onclick="setHeatingInput('total')">
+            <input type="radio" name="heatingInput" value="total"> Общая на стояк
+          </label>
+        </div>
+
+        <div id="heating-by-type" style="margin-top:14px">
+          <div class="subsection-label">Мощность обогрева по типам, кВт</div>
+          <div class="form-grid">
+            <div class="form-group"><label>Студия</label><input type="number" id="hStudio" min="0" max="100" value="0" step="0.5"></div>
+            <div class="form-group"><label>1-комнатная</label><input type="number" id="h1k" min="0" max="100" value="0" step="0.5"></div>
+            <div class="form-group"><label>2-комнатная</label><input type="number" id="h2k" min="0" max="100" value="0" step="0.5"></div>
+            <div class="form-group"><label>3-комнатная</label><input type="number" id="h3k" min="0" max="100" value="0" step="0.5"></div>
+            <div class="form-group"><label>4-комнатная</label><input type="number" id="h4k" min="0" max="100" value="0" step="0.5"></div>
+          </div>
+        </div>
+
+        <div id="heating-total" class="hidden" style="margin-top:14px">
+          <div class="hint" style="margin-bottom:10px">Укажите общую мощность обогрева для каждого стояка в разделе "Панели и квартирные стояки"</div>
+        </div>
+
       </div>
 
       <div class="divider"></div>
@@ -392,6 +433,11 @@
         </div>
         <div id="curtains-grid" class="form-grid" style="margin-top:10px"></div>
       </div>
+
+      <div class="subsection-label" style="margin-top:20px">Дополнительные нагрузки</div>
+      <div class="hint" style="margin-bottom:10px">Добавьте дополнительные нагрузки при необходимости</div>
+      <button onclick="addCustomLoad()" style="width:100%;padding:12px;background:var(--surface2);border:2px dashed var(--border);border-radius:8px;color:var(--accent2);font-family:'Geologica',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;margin-bottom:10px" onmouseover="this.style.borderColor='var(--accent2)';this.style.background='var(--surface3)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'">+ Добавить нагрузку</button>
+      <div id="custom-loads-container"></div>
     </div>
   </div>
 
@@ -588,7 +634,7 @@ function selectCable(iAv,p,l,mat,wt,duLimit=2.0){
 }
 
 // Расчёт мощности для набора квартир
-function calcPower(rd, flatType, region, avgArea, cityGroup, climate, pStudio, p1k, p2k, p3k, p4k){
+function calcPower(rd, flatType, region, avgArea, cityGroup, climate, pStudio, p1k, p2k, p3k, p4k, hStudio, h1k, h2k, h3k, h4k, heatingMode, heatingInputMethod, heatingTotalPower){
   const{nStudio,n1k,n2k,n3k,n4k,nTotal,acMode,acManual}=rd;
   let pInstalled,pFlats,specificLoad=null,ks=null;
   if(flatType==='std'){
@@ -613,7 +659,19 @@ function calcPower(rd, flatType, region, avgArea, cityGroup, climate, pStudio, p
   }
   let pAc=0,pAcInst=0,kcAc=null;
   if(nAc>0){const kz=getKz(avgArea);const kc=getKc(nAc);kcAc=round3(kc);pAc=round2(kc*kz*0.9*nAc);pAcInst=round2(nAc*0.9);}
-  return{pInstalled:round2(pInstalled+pAcInst),pCalc:round2(pFlats+0.9*pAc),specificLoad,ks,nAc,kcAc};
+  
+  // Расчёт мощности обогрева (только для повышенной комфортности)
+  let pHeating = 0;
+  if(flatType === 'lux'){
+    const heatingCoeff = heatingMode === 'main' ? 1.0 : 0.7;
+    if(heatingInputMethod === 'byType'){
+      pHeating = round2((hStudio*nStudio + h1k*n1k + h2k*n2k + h3k*n3k + h4k*n4k) * heatingCoeff);
+    } else {
+      pHeating = round2((heatingTotalPower || 0) * heatingCoeff);
+    }
+  }
+  
+  return{pInstalled:round2(pInstalled+pAcInst),pCalc:round2(pFlats+0.9*pAc+pHeating),pHeating,specificLoad,ks,nAc,kcAc};
 }
 
 function toggleSection(id){document.getElementById(id).classList.toggle('open');}
@@ -621,11 +679,14 @@ function setMethodology(method){
   document.getElementById('btn-sp256').classList.toggle('active',method==='sp256');
   document.getElementById('btn-msk').classList.toggle('active',method==='msk');
   document.getElementById('block-ac').classList.toggle('hidden',method==='msk');
+  document.getElementById('flatTypeSelector').classList.toggle('hidden',method==='msk'); // Скрываем выбор типа квартир
+  document.getElementById('regionSelector').classList.toggle('hidden',method==='msk'); // Скрываем выбор региона
   renderRisers(1); renderRisers(2);
   if(method==='msk'){
     setCosPhi('0.98');
     document.getElementById('cosPhiGroup').style.pointerEvents='none';
     document.getElementById('cosPhiGroup').style.opacity='0.4';
+    setFlatType('std'); // Для методики Москвы всегда стандартные квартиры
   } else {
     document.getElementById('cosPhiGroup').style.pointerEvents='';
     document.getElementById('cosPhiGroup').style.opacity='';
@@ -637,6 +698,16 @@ function setFlatType(type){
   document.getElementById('btn-std').classList.toggle('active',type==='std');
   document.getElementById('btn-lux').classList.toggle('active',type==='lux');
   renderRisers(1); renderRisers(2);
+}
+function setHeatingMode(mode){
+  document.getElementById('btn-heat-main').classList.toggle('active',mode==='main');
+  document.getElementById('btn-heat-mixed').classList.toggle('active',mode==='mixed');
+}
+function setHeatingInput(method){
+  document.getElementById('btn-heat-bytype').classList.toggle('active',method==='byType');
+  document.getElementById('btn-heat-total').classList.toggle('active',method==='total');
+  document.getElementById('heating-by-type').classList.toggle('hidden',method!=='byType');
+  document.getElementById('heating-total').classList.toggle('hidden',method!=='total');
 }
 function setCosPhi(val){
   document.getElementById('btn-cos1').classList.toggle('active',val==='0.93');
@@ -705,6 +776,10 @@ function renderRisers(pNum){
           ${flatType==='std'?`<div class="form-group"><label>Кондиционеров (расч.)</label><input type="number" id="p${pNum}-r${r}-acManual" min="0" value="0"></div>`:''}
         </div>
       </div>
+      ${flatType==='lux'?`<div class="riser-divider"></div>
+      <div class="riser-grid" id="p${pNum}-r${r}-heating-block">
+        <div class="form-group"><label>🔥 Обогрев стояка, кВт</label><input type="number" id="p${pNum}-r${r}-heatingTotal" min="0" value="0" step="0.5"></div>
+      </div>`:''}
       <div class="riser-divider"></div>
       <div class="riser-grid">${condFields}</div>`;
     container.appendChild(block);
@@ -722,22 +797,23 @@ function getRiserData(pNum,r,flatType){
   const g=(f)=>parseFloat(document.getElementById(`p${pNum}-r${r}-${f}`)?.value)||0;
   const len=g('len');
   const condType=document.getElementById('conductorType')?.value||'cable';
+  const heatingTotalPower = flatType==='lux' ? g('heatingTotal') : 0;
 
   // Для методики Москвы 2020 используем только общее количество квартир
   if(getMethodology()==='msk'){
     const nTotal=g('nTotal');
-    return {nStudio:0,n1k:0,n2k:0,n3k:0,n4k:0,nTotal,len,acMode:'auto',acManual:null,condType};
+    return {nStudio:0,n1k:0,n2k:0,n3k:0,n4k:0,nTotal,len,acMode:'auto',acManual:null,condType,heatingTotalPower};
   }
 
   const mode=document.querySelector(`input[name="p${pNum}-r${r}-mode"]:checked`)?.value||'known';
   if(mode==='unknown'){
     const nTotal=g('nTotal');
     const acManual=g('acManual');
-    return{nStudio:0,n1k:0,n2k:0,n3k:0,n4k:0,nTotal,len,acMode:'manual',acManual,condType};
+    return{nStudio:0,n1k:0,n2k:0,n3k:0,n4k:0,nTotal,len,acMode:'manual',acManual,condType,heatingTotalPower};
   }
 
   const nStudio=g('nStudio'),n1k=g('n1k'),n2k=g('n2k'),n3k=g('n3k'),n4k=g('n4k');
-  return{nStudio,n1k,n2k,n3k,n4k,nTotal:nStudio+n1k+n2k+n3k+n4k,len,acMode:'auto',acManual:null,condType};
+  return{nStudio,n1k,n2k,n3k,n4k,nTotal:nStudio+n1k+n2k+n3k+n4k,len,acMode:'auto',acManual:null,condType,heatingTotalPower};
 }
 
 function round1(x){return Math.round(x*10)/10;}
@@ -766,6 +842,65 @@ function setODN(type, val){
   if(type==='tz' && val==='yes') renderCurtains();
 }
 
+let customLoadCounter = 0;
+
+function addCustomLoad(){
+  customLoadCounter++;
+  const container = document.getElementById('custom-loads-container');
+  const loadDiv = document.createElement('div');
+  loadDiv.className = 'riser-block';
+  loadDiv.id = `custom-load-${customLoadCounter}`;
+  loadDiv.style.marginTop = '10px';
+  
+  loadDiv.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="riser-label">Нагрузка ${customLoadCounter}</div>
+      <button class="remove-btn" onclick="removeCustomLoad(${customLoadCounter})">Удалить</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Название нагрузки</label>
+        <input type="text" id="custom-load-name-${customLoadCounter}" placeholder="например, Насосная">
+      </div>
+      <div class="form-group">
+        <label>Мощность, кВт</label>
+        <input type="number" id="custom-load-power-${customLoadCounter}" min="0" placeholder="кВт" step="0.5">
+      </div>
+      <div class="form-group">
+        <label>Коэффициент одновременности</label>
+        <input type="number" id="custom-load-ko-${customLoadCounter}" min="0" max="1" value="0.9" step="0.1">
+      </div>
+    </div>
+  `;
+  
+  container.appendChild(loadDiv);
+}
+
+function removeCustomLoad(id){
+  const loadDiv = document.getElementById(`custom-load-${id}`);
+  if(loadDiv) loadDiv.remove();
+}
+
+function getCustomLoads(){
+  const loads = [];
+  for(let i = 1; i <= customLoadCounter; i++){
+    const nameEl = document.getElementById(`custom-load-name-${i}`);
+    const powerEl = document.getElementById(`custom-load-power-${i}`);
+    const koEl = document.getElementById(`custom-load-ko-${i}`);
+    
+    if(nameEl && powerEl && koEl){
+      const name = nameEl.value.trim();
+      const power = parseFloat(powerEl.value) || 0;
+      const ko = parseFloat(koEl.value) || 0.9;
+      
+      if(name && power > 0){
+        loads.push({name, power, ko});
+      }
+    }
+  }
+  return loads;
+}
+
 function calculatePanels(){
   const resultDiv=document.getElementById('result-panels');
   const body=document.getElementById('resultPanelsBody');
@@ -781,6 +916,11 @@ function calculatePanels(){
     const wireType=getStr('wireType');
     const mark=getStr('cableMark')||'Кабель';
     const pStudio=getVal('pStudio'),p1k=getVal('p1k'),p2k=getVal('p2k'),p3k=getVal('p3k'),p4k=getVal('p4k');
+    
+    // Параметры обогрева (только для повышенной комфортности)
+    const hStudio=getVal('hStudio'),h1k=getVal('h1k'),h2k=getVal('h2k'),h3k=getVal('h3k'),h4k=getVal('h4k');
+    const heatingMode=document.querySelector('input[name="heatingMode"]:checked')?.value||'main';
+    const heatingInputMethod=document.querySelector('input[name="heatingInput"]:checked')?.value||'byType';
 
     if(flatType==='lux'&&!pStudio&&!p1k&&!p2k&&!p3k&&!p4k)
       throw new Error('Введите мощность хотя бы одного типа квартиры');
@@ -789,6 +929,7 @@ function calculatePanels(){
     // Накопители для ВРУ
     let vruNStudio=0,vruN1k=0,vruN2k=0,vruN3k=0,vruN4k=0,vruNTotal=0;
     let vruAcManual=0,vruHasManualAc=false;
+    let vruHeatingTotal=0; // Суммарная мощность обогрева по всем панелям
 
     for(let pNum=1;pNum<=2;pNum++){
       const count=parseInt(document.getElementById(`p${pNum}-count`).value);
@@ -798,6 +939,7 @@ function calculatePanels(){
       // Суммарные данные по панели для итогового расчёта
       let panelNStudio=0,panelN1k=0,panelN2k=0,panelN3k=0,panelN4k=0,panelNTotal=0;
       let panelAcManual=0,panelHasManualAc=false;
+      let panelHeatingTotal=0; // Суммарная мощность обогрева по всем стоякам панели
       let hasRisers=false;
 
       // Расчёт каждого стояка
@@ -807,7 +949,7 @@ function calculatePanels(){
         hasRisers=true;
         if(!rd.len)throw new Error(`Стояк ${r} панели ${pNum}: введите длину кабеля`);
 
-        const res=calcPower(rd,flatType,region,avgArea,cityGroup,climate,pStudio,p1k,p2k,p3k,p4k);
+        const res=calcPower(rd,flatType,region,avgArea,cityGroup,climate,pStudio,p1k,p2k,p3k,p4k,hStudio,h1k,h2k,h3k,h4k,heatingMode,heatingInputMethod,rd.heatingTotalPower);
         const iCalc=calcCurrent(res.pCalc,cosPhi);
         const iAv=selectAv(iCalc);
         if(!iAv)throw new Error(`Стояк ${r} панели ${pNum}: ток ${iCalc}А превышает 630А`);
@@ -861,6 +1003,7 @@ function calculatePanels(){
               ? `<div class="res-row"><span class="res-label">Удельная мощность</span><span class="res-val">${res.specificLoad} кВт/кв</span></div>`
               : `<div class="res-row"><span class="res-label">Коэф. одновременности Кс</span><span class="res-val">${res.ks}</span></div>`}
             ${res.nAc>0?`<div class="res-row"><span class="res-label">Кондиционеров</span><span class="res-val">${res.nAc} шт.</span></div><div class="res-row"><span class="res-label">Кс кондиционеров</span><span class="res-val">${res.kcAc}</span></div>`:''}
+            ${res.pHeating>0?`<div class="res-row"><span class="res-label">🔥 Обогрев (k=${heatingMode==='main'?'1.0':'0.7'})</span><span class="res-val danger">${res.pHeating} кВт</span></div>`:''}
             <div class="res-row"><span class="res-label">Р расчётная</span><span class="res-val">${res.pCalc} кВт</span></div>
             <div class="res-row"><span class="res-label">cos(φ)</span><span class="res-val">${cosPhi}</span></div>
             <div class="res-row"><span class="res-label">Ток расчётный</span><span class="res-val">${iCalc} А</span></div>
@@ -872,6 +1015,7 @@ function calculatePanels(){
         panelN3k+=rd.n3k; panelN4k+=rd.n4k; panelNTotal+=rd.nTotal;
         if(rd.acMode==='manual'){panelHasManualAc=true;panelAcManual+=rd.acManual||0;}
         else{panelAcManual+=res.nAc;}
+        panelHeatingTotal+=res.pHeating || 0; // Накапливаем обогрев
       }
 
       // Итог по панели — новый расчёт по суммарным квартирам
@@ -887,7 +1031,7 @@ function calculatePanels(){
             panelN2k*p2k*ks2k + panelN3k*p3k*ks3k + panelN4k*p4k*ks4k
           );
           panelKo=round3(getSimultaneity(panelNTotal));
-          panelPCalc=round2(panelKo * panelPInstalled);
+          panelPCalc=round2(panelKo * panelPInstalled + panelHeatingTotal); // Добавляем обогрев
         } else {
           const panelRd={
             nStudio:panelNStudio,n1k:panelN1k,n2k:panelN2k,n3k:panelN3k,n4k:panelN4k,nTotal:panelNTotal,
@@ -933,6 +1077,7 @@ function calculatePanels(){
             ${flatBreakdown}
             <div class="res-row"><span class="res-label">Р установленная (с Кс)</span><span class="res-val yellow">${panelPInstalled} кВт</span></div>
             ${panelKsRow}
+            ${panelHeatingTotal>0?`<div class="res-row"><span class="res-label">🔥 Обогрев итого</span><span class="res-val danger">${round2(panelHeatingTotal)} кВт</span></div>`:''}
             <div class="res-row"><span class="res-label">Р расчётная</span><span class="res-val yellow">${panelPCalc} кВт</span></div>
             <div class="res-row"><span class="res-label">cos(φ)</span><span class="res-val yellow">${cosPhi}</span></div>
             <div class="res-row"><span class="res-label">Ток панели</span><span class="res-val yellow">${panelI} А</span></div>
@@ -947,6 +1092,7 @@ function calculatePanels(){
       vruN3k+=panelN3k; vruN4k+=panelN4k; vruNTotal+=panelNTotal;
       if(panelHasManualAc){vruHasManualAc=true; vruAcManual+=panelAcManual;}
       else{vruAcManual+=panelAcManual;}
+      vruHeatingTotal+=panelHeatingTotal; // Накапливаем обогрев для ВРУ
     }
 
     html+='</div>';
@@ -954,9 +1100,10 @@ function calculatePanels(){
     // Сохраняем данные для calculateVRU
     window._vruData = {
       vruNStudio,vruN1k,vruN2k,vruN3k,vruN4k,vruNTotal,
-      vruHasManualAc,vruAcManual,
+      vruHasManualAc,vruAcManual,vruHeatingTotal,
       flatType,region,cosPhi,avgArea,cityGroup,climate,
-      pStudio,p1k,p2k,p3k,p4k
+      pStudio,p1k,p2k,p3k,p4k,
+      hStudio,h1k,h2k,h3k,h4k,heatingMode,heatingInputMethod
     };
 
     body.innerHTML=html;
@@ -972,8 +1119,9 @@ function calculateVRU(){
   try{
     if(!window._vruData) throw new Error('Сначала нажмите "Рассчитать панели"');
     const {vruNStudio,vruN1k,vruN2k,vruN3k,vruN4k,vruNTotal,
-           vruHasManualAc,vruAcManual,flatType,region,cosPhi,
-           avgArea,cityGroup,climate,pStudio,p1k,p2k,p3k,p4k} = window._vruData;
+           vruHasManualAc,vruAcManual,vruHeatingTotal,flatType,region,cosPhi,
+           avgArea,cityGroup,climate,pStudio,p1k,p2k,p3k,p4k,
+           hStudio,h1k,h2k,h3k,h4k,heatingMode,heatingInputMethod} = window._vruData;
 
     const kf = getRegionalFactor(region);
     let vruPInstalled, vruPCalc, vruKsRow='', vruFlatBreakdown='', vruPAc=0;
@@ -986,7 +1134,7 @@ function calculateVRU(){
         vruN2k*p2k*ks2k + vruN3k*p3k*ks3k + vruN4k*p4k*ks4k
       );
       const vruKo=round3(getSimultaneity(vruNTotal));
-      vruPCalc=round2(vruKo * vruPInstalled);
+      vruPCalc=round2(vruKo * vruPInstalled + vruHeatingTotal); // Добавляем обогрев
       const parts=[];
       if(vruNStudio>0)parts.push(`студии: ${vruNStudio}, Кс=${ksStudio}`);
       if(vruN1k>0)parts.push(`1к: ${vruN1k}, Кс=${ks1k}`);
@@ -995,10 +1143,13 @@ function calculateVRU(){
       if(vruN4k>0)parts.push(`4к: ${vruN4k}, Кс=${ks4k}`);
       vruFlatBreakdown=`<div class="res-flat-breakdown" style="margin:6px 0">${parts.join(' · ')}</div>`;
       vruKsRow=`<div class="res-row"><span class="res-label">Ко (одновременности)</span><span class="res-val yellow">${vruKo}</span></div>`;
+      if(vruHeatingTotal>0){
+        vruKsRow+=`<div class="res-row"><span class="res-label">🔥 Обогрев (k=${heatingMode==='main'?'1.0':'0.7'})</span><span class="res-val danger">${round2(vruHeatingTotal)} кВт</span></div>`;
+      }
     } else {
       const vruRd={nStudio:vruNStudio,n1k:vruN1k,n2k:vruN2k,n3k:vruN3k,n4k:vruN4k,nTotal:vruNTotal,
         acMode:vruHasManualAc?'manual':'auto', acManual:vruHasManualAc?vruAcManual:null};
-      const vruRes=calcPower(vruRd,flatType,region,avgArea,cityGroup,climate,pStudio,p1k,p2k,p3k,p4k);
+      const vruRes=calcPower(vruRd,flatType,region,avgArea,cityGroup,climate,pStudio,p1k,p2k,p3k,p4k,hStudio,h1k,h2k,h3k,h4k,heatingMode,heatingInputMethod,0);
       vruPInstalled=vruRes.pInstalled;
       vruPCalc=round2(vruRes.pCalc * kf);
       vruPAc=round2(vruRes.nAc>0 ? getKc(vruRes.nAc)*getKz(avgArea)*0.9*vruRes.nAc : 0);
@@ -1048,9 +1199,18 @@ function calculateVRU(){
       odnHtml+=`<div class="res-row"><span class="res-label">Завесы — Кс</span><span class="res-val yellow">${tzKs}</span></div>`;
       odnHtml+=`<div class="res-row"><span class="res-label">Завесы — Р расчётная</span><span class="res-val yellow">${tzPCalc} кВт</span></div>`;
     }
+    
+    // Пользовательские нагрузки
+    const customLoads = getCustomLoads();
+    let customPCalc = 0;
+    for(const load of customLoads){
+      const pCalc = round2(load.power * load.ko);
+      customPCalc += pCalc;
+      odnHtml+=`<div class="res-row"><span class="res-label">${load.name} (Ко=${load.ko})</span><span class="res-val yellow">${pCalc} кВт</span></div>`;
+    }
 
     // Итог ВРУ — кондиционеры уже включены в vruPCalc через calcPower
-    const pSila=round2(liftPCalc+itpP+vnsP+tzPCalc);
+    const pSila=round2(liftPCalc+itpP+vnsP+tzPCalc+customPCalc);
     const pVRU=round2(vruPCalc+0.9*pSila);
     const iVRU38=round2(pVRU/(Math.sqrt(3)*0.38*cosPhi));
     const iVRU40=round2(pVRU/(Math.sqrt(3)*0.40*cosPhi));
